@@ -1,13 +1,32 @@
-# Configurações centrais do jogo (tela, cores e caminhos de arquivos).
+# Configurações da janela
 LARGURA_TELA = 800
 ALTURA_TELA = 600
 FPS = 60
 
-TITULO_JOGO = "Projeto Final - Pygame"
+TITULO_JOGO = "Caca Dados"
 
-BRANCO = (255, 255, 255)
-PRETO = (0, 0, 0)
-CINZA = (212,212,212)
+TAMANHO_CELULA = 40
+DESLOCAMENTO_Y = 80
 
+# Regras do jogo
+PONTOS_VITORIA = 100
+TEMPO_LIMITE = 120
+VIDAS_INICIAIS = 3
+
+QUANTIDADE_ITENS = 9
+
+# Cores
+BRANCO = (245, 245, 245)
+PRETO = (20, 24, 32)
+
+FUNDO = (28, 35, 48)
+PAREDE = (57, 78, 105)
+CHAO = (220, 228, 235)
+
+AZUL = (45, 170, 220)
+VERDE = (40, 190, 105)
+AMARELO = (245, 190, 55)
+VERMELHO = (220, 75, 75)
+
+# Caminho do arquivo de recorde
 CAMINHO_RECORDE = "data/recorde.txt"
-CAMINHO_SPRITES = "assets/imagens/spritesheet.bmp"

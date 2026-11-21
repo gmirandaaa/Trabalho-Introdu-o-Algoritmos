@@ -66,7 +66,7 @@ Liste até cinco regras que expliquem o funcionamento do jogo. Exemplos: o jogad
 - Regra 2: Cada dado confiável coletado acrescenta 10 pontos à pontuação.
 - Regra 3: Cada dado falso coletado retira 5 pontos.
 - Regra 4: Coletar dados pessoais faz o jogador perder uma vida.
-- Regra 5: O jogador começa com 3 vidas e tem 120 segundos para completar o objetivo.
+- Regra 5: O jogador começa com 3 vidas e tem 180 segundos para completar o objetivo.
 
 ## 8. Condição de vitória
 

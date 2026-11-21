@@ -5,138 +5,442 @@ from src.config import (
     ALTURA_TELA,
     FPS,
     TITULO_JOGO,
-    CINZA,
-    CAMINHO_RECORDE,
-    CAMINHO_SPRITES,
+    TAMANHO_CELULA,
+    DESLOCAMENTO_Y,
+    PONTOS_VITORIA,
+    BRANCO,
+    PRETO,
+    FUNDO,
+    PAREDE,
+    CHAO,
+    AZUL,
+    VERDE,
+    AMARELO,
+    VERMELHO,
+    CAMINHO_RECORDE
+)
+
+from src.mapa import (
+    MAPA,
+    LINHAS,
+    COLUNAS,
+    celula_para_pixel
 )
 
 from src.funcoes import (
-    calcular_pontos,
-    jogador_perdeu,
-    limitar_valor,
-    verificar_colisao,
-    tomar_dano,
+    iniciar_partida,
+    mover_jogador,
+    atualizar_estado
 )
-from src.sprites import pegar_sprite
+
 from src.dados import (
     salvar_recorde,
-    carregar_recorde,
+    carregar_recorde
 )
+
+
+def desenhar_texto(tela, mensagem, fonte, cor, posicao):
+    """
+    Exibe um texto na janela.
+    """
+
+    imagem = fonte.render(mensagem, True, cor)
+
+    retangulo = imagem.get_rect(center=posicao)
+
+    tela.blit(imagem, retangulo)
+
+
+def desenhar_mapa(tela):
+    """
+    Desenha o labirinto na tela.
+    """
+
+    for linha in range(LINHAS):
+
+        for coluna in range(COLUNAS):
+
+            x, y = celula_para_pixel(coluna, linha)
+
+            if MAPA[linha][coluna] == "1":
+
+                cor = PAREDE
+
+            else:
+
+                cor = CHAO
+
+            pygame.draw.rect(
+                tela,
+                cor,
+                (x, y, TAMANHO_CELULA, TAMANHO_CELULA),
+                border_radius=5
+            )
+
+
+def desenhar_itens(tela, itens, fonte_pequena):
+    """
+    Desenha os dados espalhados pelo labirinto.
+    """
+
+    aparencia = {
+        "confiavel": (VERDE, "+"),
+        "falso": (AMARELO, "!"),
+        "pessoal": (VERMELHO, "X")
+    }
+
+    for item in itens:
+
+        coluna, linha = item["posicao"]
+
+        x, y = celula_para_pixel(coluna, linha)
+
+        cor, simbolo = aparencia[item["tipo"]]
+
+        centro = (
+            x + TAMANHO_CELULA // 2,
+            y + TAMANHO_CELULA // 2
+        )
+
+        pygame.draw.circle(
+            tela,
+            cor,
+            centro,
+            13
+        )
+
+        desenhar_texto(
+            tela,
+            simbolo,
+            fonte_pequena,
+            PRETO,
+            centro
+        )
+
+
+
+def desenhar_jogador(tela, partida):
+    coluna, linha = partida["jogador"]
+
+    x, y = celula_para_pixel(coluna, linha)
+
+    centro_x = x + TAMANHO_CELULA // 2
+    centro_y = y + TAMANHO_CELULA // 2
+
+    # Antena
+    pygame.draw.line(
+        tela, PRETO,
+        (centro_x, centro_y - 12),
+        (centro_x, centro_y - 18), 2
+    )
+    pygame.draw.circle(
+        tela, AMARELO,
+        (centro_x, centro_y - 19), 3
+    )
+
+    # Cabeça
+    pygame.draw.rect(
+        tela, AZUL,
+        (centro_x - 12, centro_y - 13, 24, 17),
+        border_radius=5
+    )
+
+    # Olhos
+    pygame.draw.circle(
+        tela, BRANCO,
+        (centro_x - 5, centro_y - 7), 3
+    )
+    pygame.draw.circle(
+        tela, BRANCO,
+        (centro_x + 5, centro_y - 7), 3
+    )
+
+    # Corpo
+    pygame.draw.rect(
+        tela, AZUL,
+        (centro_x - 9, centro_y + 5, 18, 12),
+        border_radius=3
+    )
+
+    # Braços
+    pygame.draw.line(
+        tela, PRETO,
+        (centro_x - 9, centro_y + 8),
+        (centro_x - 14, centro_y + 13), 3
+    )
+    pygame.draw.line(
+        tela, PRETO,
+        (centro_x + 9, centro_y + 8),
+        (centro_x + 14, centro_y + 13), 3
+    )
+
+    # Pernas
+    pygame.draw.line(
+        tela, PRETO,
+        (centro_x - 5, centro_y + 17),
+        (centro_x - 7, centro_y + 20), 3
+    )
+    pygame.draw.line(
+        tela, PRETO,
+        (centro_x + 5, centro_y + 17),
+        (centro_x + 7, centro_y + 20), 3
+    )
+
+def desenhar_interface(
+    tela,
+    partida,
+    recorde,
+    fonte,
+    fonte_pequena
+):
+    """
+    Exibe pontuação, recorde, vidas e tempo.
+    """
+
+    pygame.draw.rect(
+        tela,
+        FUNDO,
+        (0, 0, LARGURA_TELA, DESLOCAMENTO_Y)
+    )
+
+    desenhar_texto(
+        tela,
+        "CAÇA DADOS",
+        fonte,
+        BRANCO,
+        (100, 25)
+    )
+
+    desenhar_texto(
+        tela,
+        f"Pontos: {partida['pontos']}/{PONTOS_VITORIA}",
+        fonte_pequena,
+        BRANCO,
+        (290, 25)
+    )
+
+    desenhar_texto(
+        tela,
+        f"Recorde: {recorde}",
+        fonte_pequena,
+        BRANCO,
+        (440, 25)
+    )
+
+    desenhar_texto(
+        tela,
+        f"Vidas: {partida['vidas']}",
+        fonte_pequena,
+        BRANCO,
+        (560, 25)
+    )
+
+    desenhar_texto(
+        tela,
+        f"Tempo: {partida['tempo_restante']}s",
+        fonte_pequena,
+        BRANCO,
+        (690, 25)
+    )
+
+    desenhar_texto(
+        tela,
+        "+ confiavel     ! falso     X pessoal",
+        fonte_pequena,
+        BRANCO,
+        (LARGURA_TELA // 2, 58)
+    )
+
+
+def desenhar_tela_final(
+    tela,
+    estado,
+    pontos,
+    fonte,
+    fonte_pequena
+):
+    """
+    Exibe a mensagem de vitória ou derrota.
+    """
+
+    tela.fill(FUNDO)
+
+    if estado == "vitoria":
+
+        titulo = "Voce venceu!"
+        detalhe = "Voce reuniu dados confiaveis para a IA."
+        cor = VERDE
+
+    else:
+
+        titulo = "Fim de jogo!"
+        detalhe = "Nem todos os dados eram seguros..."
+        cor = VERMELHO
+
+    desenhar_texto(
+        tela,
+        titulo,
+        fonte,
+        cor,
+        (LARGURA_TELA // 2, 220)
+    )
+
+    desenhar_texto(
+        tela,
+        detalhe,
+        fonte_pequena,
+        BRANCO,
+        (LARGURA_TELA // 2, 290)
+    )
+
+    desenhar_texto(
+        tela,
+        f"Pontuacao final: {pontos}",
+        fonte,
+        BRANCO,
+        (LARGURA_TELA // 2, 350)
+    )
+
+    desenhar_texto(
+        tela,
+        "Pressione R para jogar novamente",
+        fonte_pequena,
+        BRANCO,
+        (LARGURA_TELA // 2, 420)
+    )
+
+    desenhar_texto(
+        tela,
+        "Pressione ESC para sair",
+        fonte_pequena,
+        BRANCO,
+        (LARGURA_TELA // 2, 455)
+    )
+
+
+def desenhar_partida(
+    tela,
+    partida,
+    recorde,
+    fonte,
+    fonte_pequena
+):
+    """
+    Organiza o desenho de todos os elementos.
+    """
+
+    tela.fill(FUNDO)
+
+    desenhar_interface(
+        tela,
+        partida,
+        recorde,
+        fonte,
+        fonte_pequena
+    )
+
+    desenhar_mapa(tela)
+
+    desenhar_itens(
+        tela,
+        partida["itens"],
+        fonte_pequena
+    )
+
+    desenhar_jogador(
+        tela,
+        partida
+    )
 
 
 def executar_jogo():
-    """Executa o loop principal do jogo e controla estado, colisões e pontuação."""
-    pygame.init()
-    
+    """
+    Inicializa o Pygame e executa o loop principal.
+    """
 
-    tela = pygame.display.set_mode((LARGURA_TELA, ALTURA_TELA))
+    pygame.init()
+
+    tela = pygame.display.set_mode(
+        (LARGURA_TELA, ALTURA_TELA)
+    )
+
     pygame.display.set_caption(TITULO_JOGO)
 
     relogio = pygame.time.Clock()
-    rodando = True
 
-    # 1. Carregando as imagens recortadas do Spritesheet
+    fonte = pygame.font.SysFont("arial", 36)
 
+    fonte_pequena = pygame.font.SysFont("arial", 17)
 
-    # Jogador: usando tamanho 110x110 para capturar o quadrado perfeitamente
-    player_image = pegar_sprite(CAMINHO_SPRITES, x=110, y=120, width=190, height=190, scale=0.5)
+    partida = iniciar_partida()
 
-    # Gema pequena: usando tamanho 64x64
-    gem_image    = pegar_sprite(CAMINHO_SPRITES, x=900, y=690, width=200, height=200, scale=0.5)
-
-    # Morcego: usando tamanho 180x120 por causa das asas abertas
-    bat_image    = pegar_sprite(CAMINHO_SPRITES, x=905, y=1060, width=200, height=130, scale=0.5)
-    
-    # 2. Criando a estrutura de Sprites usando Dicionários
-    jogador = {
-        "imagem": player_image,
-        "rect": player_image.get_rect(topleft=(100, 100))
-    }
-
-    gema = {
-        "imagem": gem_image,
-        "rect": gem_image.get_rect(topleft=(500, 300))
-    }
-    
-    inimigo = {
-        "imagem": bat_image,
-        "rect": bat_image.get_rect(topleft=(200, 500))
-    }
-
-    velocidade = 5
-    pontos = 0
-    vidas = 3
     recorde = carregar_recorde(CAMINHO_RECORDE)
 
-    # Loop principal: processa entrada, atualiza estado e renderiza a cena.
+    rodando = True
+
     while rodando:
+
         relogio.tick(FPS)
 
+        # Captura os eventos.
         for evento in pygame.event.get():
+
             if evento.type == pygame.QUIT:
+
                 rodando = False
 
-        teclas = pygame.key.get_pressed()
+            elif evento.type == pygame.KEYDOWN:
 
-        # Movimentação alterando direto os eixos X e Y do retângulo do jogador
-        if teclas[pygame.K_LEFT]:
-            jogador["rect"].x -= velocidade
-        if teclas[pygame.K_RIGHT]:
-            jogador["rect"].x += velocidade
-        if teclas[pygame.K_UP]:
-            jogador["rect"].y -= velocidade
-        if teclas[pygame.K_DOWN]:
-            jogador["rect"].y += velocidade
+                if evento.key == pygame.K_ESCAPE:
 
-        # Limitando o jogador dentro das bordas da tela usando as propriedades do Rect
-        jogador["rect"].x = limitar_valor(jogador["rect"].x, 0, LARGURA_TELA - jogador["rect"].width)
-        jogador["rect"].y = limitar_valor(jogador["rect"].y, 0, ALTURA_TELA - jogador["rect"].height)
+                    rodando = False
 
-        # Verificação de colisão com a Gema (antigo 'item')
-        if verificar_colisao(jogador["rect"], gema["rect"]):
-            pontos = calcular_pontos(pontos, 10)
+                elif partida["estado"] == "jogando":
 
-            # Move a gema de lugar ao coletar
-            gema["rect"].x += 80
-            gema["rect"].y += 50
+                    mover_jogador(
+                        partida,
+                        evento.key
+                    )
 
-            # Se a gema sair da tela, volta para uma posição segura
-            if gema["rect"].x > LARGURA_TELA - gema["rect"].width:
-                gema["rect"].x = 50
-            if gema["rect"].y > ALTURA_TELA - gema["rect"].height:
-                gema["rect"].y = 50
+                elif evento.key == pygame.K_r:
 
-        # Verificação de colisão com o Inimigo
-        if verificar_colisao(jogador["rect"], inimigo["rect"]):
-            vidas = tomar_dano(vidas, 1)
+                    partida = iniciar_partida()
 
-            # Afasta o inimigo ao colidir
-            inimigo["rect"].x += 80
-            inimigo["rect"].y += 50
+        # Atualiza a situação da partida.
+        if partida["estado"] == "jogando":
 
-            if inimigo["rect"].x > LARGURA_TELA - inimigo["rect"].width:
-                inimigo["rect"].x = 50
-            if inimigo["rect"].y > ALTURA_TELA - inimigo["rect"].height:
-                inimigo["rect"].y = 50
+            atualizar_estado(partida)
 
-        # Regras de fim de jogo e recorde
-        if jogador_perdeu(vidas):
-            rodando = False
+        # Atualiza o recorde.
+        if partida["pontos"] > recorde:
 
-        if pontos > recorde:
-            recorde = pontos
-            salvar_recorde(CAMINHO_RECORDE, recorde)
+            recorde = partida["pontos"]
 
-        pygame.display.set_caption(
-            f"{TITULO_JOGO} | Pontos: {pontos} | Recorde: {recorde} | Vidas: {vidas}"
-        )
+            salvar_recorde(
+                CAMINHO_RECORDE,
+                recorde
+            )
 
-        tela.fill(CINZA)
+        # Desenha a tela.
+        if partida["estado"] == "jogando":
 
-        # Desenhando os elementos na tela passando a imagem e o rect de cada dicionário
-        tela.blit(gema["imagem"], gema["rect"])
-        tela.blit(inimigo["imagem"], inimigo["rect"])
-        tela.blit(jogador["imagem"], jogador["rect"])
+            desenhar_partida(
+                tela,
+                partida,
+                recorde,
+                fonte_pequena,
+                fonte_pequena
+            )
+
+        else:
+
+            desenhar_tela_final(
+                tela,
+                partida["estado"],
+                partida["pontos"],
+                fonte,
+                fonte_pequena
+            )
 
         pygame.display.flip()
 
